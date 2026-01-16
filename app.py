@@ -19,14 +19,13 @@ st.info("💡 각 탭의 모든 항목을 '직접' 선택하고 입력해야 결
 tab1, tab2, tab3, tab4 = st.tabs(["① 기본자격(필수)", "② 재무건전성(필수)", "③ 3책5공(필수)", "④ 가점 및 감점"])
 
 # --------------------------------------------------------------------------------
-# [Tab 1] 기본 자격 (index=None으로 설정하여 초기 선택 없게 만듦)
+# [Tab 1] 기본 자격 (index=None으로 빈 상태 시작)
 # --------------------------------------------------------------------------------
 with tab1:
     st.subheader("1단계: 기본 자격 및 제재 확인")
     st.caption("※ 모든 항목을 O/X 체크해주세요.")
     col_a, col_b = st.columns(2)
     with col_a:
-        # index=None : 아무것도 선택 안 된 상태로 시작
         is_suitability = st.radio("Q1. 공고 자격 충족?", ("적합", "부적합"), index=None)
         is_restricted = st.radio("Q2. 참여제한 여부?", ("해당없음", "해당함"), index=None)
     with col_b:
@@ -62,23 +61,22 @@ with tab2:
         audit_opinion = chk2.selectbox("감사의견", ["적정", "한정", "부적정", "의견거절"])
 
 # --------------------------------------------------------------------------------
-# [Tab 3] 3책 5공 (초기값 -1로 설정하여 미입력 감지)
+# [Tab 3] 3책 5공 (value=None으로 완전 빈칸 시작)
 # --------------------------------------------------------------------------------
 with tab3:
     st.subheader("3단계: 인력 참여 현황 (3책 5공)")
-    st.markdown("⚠️ **과제 수가 0개여도 직접 '0'을 입력하거나 확인해야 합니다.** (초기값: 미입력)")
+    st.markdown("⚠️ **빈칸(None)입니다. 해당 사항이 없으면 '0'을 입력해주세요.**")
     
     col_p1, col_p2 = st.columns(2)
-    # min_value를 -1로 두어 초기 상태를 허용하되, 나중에 -1이면 막음
+    # value=None으로 설정하면 입력창이 비어있게 됩니다.
     with col_p1:
         st.markdown("**[현재 수행 중]**")
-        cnt_pi_current = st.number_input("연구책임자(PI)로 수행", value=-1, min_value=-1, help="0개면 0으로 수정하세요")
-        cnt_res_current = st.number_input("참여연구원으로 수행", value=-1, min_value=-1)
+        cnt_pi_current = st.number_input("연구책임자(PI)로 수행", value=None, min_value=0, placeholder="숫자 입력")
+        cnt_res_current = st.number_input("참여연구원으로 수행", value=None, min_value=0, placeholder="숫자 입력")
     with col_p2:
         st.markdown("**[현재 신청 중]**")
-        cnt_pi_applying = st.number_input("연구책임자(PI)로 신청", value=1, min_value=-1, help="보통 본 과제 포함 1개") 
-        # 신청 과제는 보통 1개이므로 편의상 1로 둠 (원하면 -1 가능)
-        cnt_res_applying = st.number_input("참여연구원으로 신청", value=-1, min_value=-1)
+        cnt_pi_applying = st.number_input("연구책임자(PI)로 신청", value=None, min_value=0, placeholder="숫자 입력") 
+        cnt_res_applying = st.number_input("참여연구원으로 신청", value=None, min_value=0, placeholder="숫자 입력")
 
 # --------------------------------------------------------------------------------
 # [Tab 4] 가점 및 감점
@@ -119,7 +117,7 @@ if st.button("🚀 종합 진단 및 점수 예측 확인", use_container_width=
 
     # 2. [Tab 1] 라디오 버튼 미선택 감지
     if is_suitability is None or is_restricted is None or is_duplicated is None or is_tax_default is None:
-        st.markdown('<div class="error-box">🚫 [Step 1] 기본 자격 탭에서 선택하지 않은 항목이 있습니다. 모든 O/X 질문에 답해주세요.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="error-box">🚫 [Step 1] 기본 자격 탭에서 선택하지 않은 항목이 있습니다.</div>', unsafe_allow_html=True)
         st.stop()
 
     # 3. [Tab 2] 재무 데이터 0원 감지 (필수값만 체크)
@@ -130,10 +128,10 @@ if st.button("🚀 종합 진단 및 점수 예측 확인", use_container_width=
         st.markdown('<div class="error-box">🚫 [Step 2] 유동자산이 입력되지 않았습니다.</div>', unsafe_allow_html=True)
         st.stop()
 
-    # 4. [Tab 3] 3책5공 미입력(-1) 감지
-    # 사용자가 0개라고 생각해서 건드리지 않으면 -1인 상태임 -> "0"으로 바꾸라고 안내
-    if cnt_pi_current == -1 or cnt_res_current == -1 or cnt_pi_applying == -1 or cnt_res_applying == -1:
-        st.markdown('<div class="error-box">🚫 [Step 3] 인력 현황이 입력되지 않았습니다.<br>해당 사항이 없으면 숫자를 <b>0</b>으로 변경해주세요. (현재 미입력 상태)</div>', unsafe_allow_html=True)
+    # 4. [Tab 3] 3책5공 빈칸(None) 감지
+    # 사용자가 입력을 안 하면 값이 None 상태로 유지됩니다.
+    if cnt_pi_current is None or cnt_res_current is None or cnt_pi_applying is None or cnt_res_applying is None:
+        st.markdown('<div class="error-box">🚫 [Step 3] 인력 현황에 빈칸이 있습니다.<br>해당 사항이 없으면 반드시 숫자 <b>0</b>을 입력해주세요.</div>', unsafe_allow_html=True)
         st.stop()
 
     # -----------------------------------------------------
