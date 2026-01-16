@@ -14,7 +14,7 @@ st.markdown("""
 st.title("🏆 AI 글로벌 빅테크 육성사업 합격 예측 시뮬레이터")
 st.info("사전검토(Eligibility)부터 가점(Bonus)까지 한 번에 확인하세요.")
 
-# 4개의 탭 구성
+# 탭 구성
 tab1, tab2, tab3, tab4 = st.tabs(["① 기본자격", "② 재무건전성", "③ 3책5공(인력)", "④ 가점 및 감점"])
 
 # [Tab 1] 기본 자격
@@ -50,33 +50,35 @@ with tab2:
         loss_3yrs = chk2.checkbox("3년 연속 영업적자")
         audit_opinion = chk2.selectbox("감사의견", ["적정", "한정", "부적정", "의견거절"])
 
-# [Tab 3] 3책 5공 상세
+# [Tab 3] 3책 5공
 with tab3:
     st.subheader("인력 참여 현황 (3책 5공)")
-    st.caption("※ 연구책임자는 총 3개, 연구원은 총 5개 과제까지만 수행 가능합니다.")
-    
     col_p1, col_p2 = st.columns(2)
     with col_p1:
-        st.markdown("**[현재 수행 중인 과제 수]**")
-        cnt_pi_current = st.number_input("연구책임자(PI)로 수행 중", value=1, min_value=0)
-        cnt_res_current = st.number_input("참여연구원으로 수행 중", value=0, min_value=0)
+        st.markdown("**[현재 수행 중]**")
+        cnt_pi_current = st.number_input("연구책임자(PI)로 수행", value=1, min_value=0)
+        cnt_res_current = st.number_input("참여연구원으로 수행", value=0, min_value=0)
     with col_p2:
-        st.markdown("**[현재 신청 중인 과제 수]**")
-        cnt_pi_applying = st.number_input("연구책임자(PI)로 신청 중", value=1, min_value=0)
-        cnt_res_applying = st.number_input("참여연구원으로 신청 중", value=0, min_value=0)
+        st.markdown("**[현재 신청 중]**")
+        cnt_pi_applying = st.number_input("연구책임자(PI)로 신청", value=1, min_value=0)
+        cnt_res_applying = st.number_input("참여연구원으로 신청", value=0, min_value=0)
 
-# [Tab 4] 가점 및 감점 (New)
+# [Tab 4] 가점 및 감점 (수정됨)
 with tab4:
     st.subheader("🏅 가점 및 감점 시뮬레이션")
-    
     col_bonus, col_penalty = st.columns(2)
     
     with col_bonus:
         st.markdown("### ➕ 가점 항목 (최대 5점)")
-        score_loc = st.selectbox("입지 요건 (최대 3점)", [0, 1, 2, 3], help="특구 내 위치 등 조건에 따른 점수")
-        st.caption("기타 우대 사항 (각 1점)")
+        
+        # 입지 및 유형 (3점) - 하나만 체크해도 3점
+        st.markdown("**1. 입지 및 유형 (3점)**")
+        st.caption("※ 아래 중 하나라도 해당하면 3점 부여")
         is_rnd_comp = st.checkbox("연구소기업")
         is_high_tech = st.checkbox("첨단기술기업")
+        
+        # 기타 가점 (1점)
+        st.markdown("**2. 기타 우수 성과 (각 1점)**")
         is_innovative = st.checkbox("우수 혁신성과 기업")
         is_top100 = st.checkbox("국가 우수성과 100선")
         is_ex_lab = st.checkbox("우수 기업부설연구소")
@@ -96,11 +98,10 @@ if st.button("🚀 종합 진단 및 점수 예측 확인", use_container_width=
         cap_total, cap_stock, liab_total, curr_asset, curr_liab, 
         op_income, int_exp, prev_debt_500, prev_curr_50, loss_3yrs, audit_opinion,
         cnt_pi_current, cnt_res_current, cnt_pi_applying, cnt_res_applying,
-        score_loc, is_rnd_comp, is_high_tech, is_innovative, is_top100, is_ex_lab,
+        is_rnd_comp, is_high_tech, is_innovative, is_top100, is_ex_lab,
         is_cancel_sanction, is_giveup
     )
     
-    # 1. 종합 판정 배너
     final_status = report["summary"]
     if final_status == "적격":
         st.success(f"### 🎉 최종 판정: [적격]")
@@ -111,12 +112,10 @@ if st.button("🚀 종합 진단 및 점수 예측 확인", use_container_width=
 
     st.divider()
 
-    # 2. 상세 리포트 카드 (3열 구성)
     c1, c2, c3 = st.columns([1.2, 1.2, 1])
     
     with c1:
-        st.markdown("#### 1️⃣ 사전검토 결격사유")
-        # 모든 FAIL 메시지 모아서 출력
+        st.markdown("#### 1️⃣ 결격사유")
         all_fails = []
         all_fails.extend(report["1_eligibility"]["msgs"])
         all_fails.extend(report["2_sanction"]["msgs"])
@@ -125,33 +124,29 @@ if st.button("🚀 종합 진단 및 점수 예측 확인", use_container_width=
                 if m["type"] == "RED": all_fails.append(m["text"])
         all_fails.extend(report["4_3n5"]["msgs"])
         
-        if not all_fails:
-            st.info("✅ 결격 사유 없음")
+        if not all_fails: st.info("✅ 결격 사유 없음")
         else:
-            for fail in all_fails:
-                st.markdown(f'<div class="fail-card">❌ {fail}</div>', unsafe_allow_html=True)
+            for fail in all_fails: st.markdown(f'<div class="fail-card">❌ {fail}</div>', unsafe_allow_html=True)
                 
     with c2:
-        st.markdown("#### 2️⃣ 사후관리(주의) 이슈")
+        st.markdown("#### 2️⃣ 사후관리")
         warns = []
         if report["3_financial"]["status"] == "WARN":
             for m in report["3_financial"]["msgs"]:
                 if m["type"] == "YELLOW": warns.append(m["text"])
         
-        if not warns:
-            st.info("✅ 특이사항 없음")
+        if not warns: st.info("✅ 특이사항 없음")
         else:
-            for w in warns:
-                st.markdown(f'<div class="warn-card">⚠️ {w}</div>', unsafe_allow_html=True)
+            for w in warns: st.markdown(f'<div class="warn-card">⚠️ {w}</div>', unsafe_allow_html=True)
                 
     with c3:
-        st.markdown("#### 3️⃣ 가점/감점 예측")
+        st.markdown("#### 3️⃣ 가/감점 예측")
         score_data = report["5_score"]
         st.markdown(f"""
         <div class="score-card">
             <h3>📊 총점: +{score_data['final']}점</h3>
             <hr>
-            <p style="color:blue">➕ 가점 합계: {score_data['bonus']}점</p>
-            <p style="color:red">➖ 감점 합계: -{score_data['penalty']}점</p>
+            <p>➕ 가점: {score_data['bonus']}점 (Max 5)</p>
+            <p>➖ 감점: -{score_data['penalty']}점</p>
         </div>
         """, unsafe_allow_html=True)
