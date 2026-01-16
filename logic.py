@@ -1,57 +1,84 @@
-def check_comprehensive(cap, db, proj, is_restricted, is_duplicated, is_default, is_suitability):
-    # 재무 비율 계산
-    debt_ratio = (db / cap * 100) if cap > 0 else 999
-    results = []
-
-    # --- [1] 비재무(자격) 요건 검토 ---
-    if is_restricted == "해당함":
-        results.append({
-            "항목": "참여제한(제재조치)",
-            "원인": "국가연구개발사업 참여제한 중인 기관/책임자 포함 [지침 제1호]",
-            "해결책": "제재 기간이 종료되지 않았다면 지원 불가합니다."
-        })
-
-    if is_duplicated == "중복됨":
-        results.append({
-            "항목": "과제 중복성",
-            "원인": "기존 과제와 동일/유사함 [지침 제3호]",
-            "해결책": "차별성을 입증하거나 목표를 변경해야 합니다."
-        })
-
-    if is_default == "해당함":
-        results.append({
-            "항목": "채무불이행",
-            "원인": "국세/지방세 체납 또는 채무불이행 등재 [지침 제5호]",
-            "해결책": "체납 처분을 해소하거나 신용회복지원 여부를 확인하세요."
-        })
-
-    if is_suitability == "부적합":
-        results.append({
-            "항목": "공고 적합성",
-            "원인": "공고 신청자격 요건 미충족 [지침 제2호]",
-            "해결책": "공고문의 자격 요건을 다시 확인하십시오."
-        })
-
-    # --- [2] 재무 요건 검토 ---
-    if cap <= 0:
-        results.append({
+def check_financial_detail(
+    cap_total, cap_stock,  # 자본총계, 자본금
+    liab_total,            # 부채총계
+    curr_asset, curr_liab, # 유동자산, 유동부채
+    op_income, int_exp,    # 영업이익, 이자비용
+    prev_debt_500, prev_curr_50, # 작년 부채500%이상, 작년 유동50%이하 여부
+    loss_3yrs,             # 3년 연속 적자 여부
+    audit_opinion,         # 감사의견
+    tax_default            # 체납 여부
+):
+    results = {"red": [], "yellow": []} # red: 사전제외, yellow: 사후관리
+    
+    # 1. 비율 계산
+    debt_ratio = (liab_total / cap_total * 100) if cap_total > 0 else 9999
+    curr_ratio = (curr_asset / curr_liab * 100) if curr_liab > 0 else 0
+    # 이자보상비율 = 영업이익 / 이자비용
+    int_cov_ratio = (op_income / int_exp) if int_exp > 0 else 9999
+    
+    # 2. [Red] 사전지원제외 요건 정밀 검토
+    
+    # (1) 자본전액잠식
+    if cap_total <= 0:
+        results["red"].append({
             "항목": "자본전액잠식",
-            "원인": "최근 결산 기준 자본총계 0 이하 [지침 제5호]",
-            "해결책": "공동연구기관 제외 또는 사유 해소 증빙 필요"
+            "내용": "24년말 기준 자본총계가 0원 이하입니다.",
+            "조치": "공동기관 제외 또는 증자 후 재무제표 확정 필요"
+        })
+        
+    # (2) 2년 연속 부채비율 500% 이상 (엑셀 헤더 반영)
+    if debt_ratio >= 500 and prev_debt_500:
+        results["red"].append({
+            "항목": "2년 연속 부채비율 500% 이상",
+            "내용": f"23년에 이어 24년({debt_ratio:.1f}%)도 500%를 초과했습니다.",
+            "조치": "창업 5년 미만 기업 등 예외 조항 확인 필요"
+        })
+        
+    # (3) 2년 연속 유동비율 50% 이하
+    if curr_ratio <= 50 and prev_curr_50:
+        results["red"].append({
+            "항목": "2년 연속 유동비율 50% 이하",
+            "내용": f"23년에 이어 24년({curr_ratio:.1f}%)도 50% 이하입니다.",
+            "조치": "재무구조 개선 필요 (지원 제외 대상)"
+        })
+        
+    # (4) 채무불이행/체납
+    if tax_default:
+        results["red"].append({
+            "항목": "국세/지방세 체납 및 채무불이행",
+            "내용": "체납처분 또는 규제중인 채무불이행 내역 존재",
+            "조치": "접수 마감 전까지 해소 필수"
         })
 
-    if debt_ratio >= 500:
-        results.append({
-            "항목": "부채비율 500% 초과",
-            "원인": f"부채비율 {debt_ratio:.1f}% 초과 [지침 제5호]",
-            "해결책": "창업 5년 미만 등 예외 요건 확인 필요"
+    # (5) 외부감사 의견
+    if audit_opinion != "적정(해당없음)":
+        results["red"].append({
+            "항목": "외부감사 의견 부적정",
+            "내용": "감사의견이 한정, 부적정, 의견거절임",
+            "조치": "지원 제외 대상"
         })
 
-    if proj > 3:
-        results.append({
-            "항목": "3책 5공 위반",
-            "원인": "책임자 과제수 3개 초과 [지침 제6호]",
-            "해결책": "책임자 변경 또는 참여율 조정 필요"
-        })
+    # 3. [Yellow] 사후관리 대상 요건 (엑셀 '사후관리여부' 반영)
+    
+    # (1) 부채비율 300% 이상
+    if debt_ratio >= 300:
+        results["yellow"].append(f"부채비율({debt_ratio:.1f}%) 300% 이상")
+        
+    # (2) 유동비율 100% 이하
+    if curr_ratio <= 100:
+        results["yellow"].append(f"유동비율({curr_ratio:.1f}%) 100% 이하")
+        
+    # (3) 부분자본잠식 (자본총계 < 자본금)
+    if cap_total < cap_stock and cap_total > 0:
+        ratio = (cap_stock - cap_total) / cap_stock * 100
+        results["yellow"].append(f"부분자본잠식 상태 (잠식률 {ratio:.1f}%)")
+        
+    # (4) 이자보상비율 1 미만
+    if int_cov_ratio < 1:
+        results["yellow"].append(f"이자보상비율 1 미만 ({int_cov_ratio:.2f}배)")
+        
+    # (5) 3년 연속 영업적자
+    if loss_3yrs:
+        results["yellow"].append("최근 3년(22~24) 연속 영업이익 적자")
 
-    return results
+    return results, debt_ratio, curr_ratio, int_cov_ratio
