@@ -8,18 +8,19 @@ st.markdown("""
     .score-card { background-color: #e3f2fd; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #90caf9; }
     .fail-card { background-color: #ffebee; padding: 10px; border-radius: 5px; color: #c62828; margin-bottom: 5px; }
     .warn-card { background-color: #fff8e1; padding: 10px; border-radius: 5px; color: #f57f17; margin-bottom: 5px; }
+    .check-warning { color: red; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🏆 AI 글로벌 빅테크 육성사업 합격 예측 시뮬레이터")
-st.info("사전검토(Eligibility)부터 가점(Bonus)까지 한 번에 확인하세요.")
+st.info("💡 상단 4개의 탭을 순서대로 모두 입력해야 최종 결과를 확인할 수 있습니다.")
 
 # 탭 구성
 tab1, tab2, tab3, tab4 = st.tabs(["① 기본자격", "② 재무건전성", "③ 3책5공(인력)", "④ 가점 및 감점"])
 
 # [Tab 1] 기본 자격
 with tab1:
-    st.subheader("기본 자격 및 제재 확인")
+    st.subheader("1단계: 기본 자격 및 제재 확인")
     col_a, col_b = st.columns(2)
     with col_a:
         is_suitability = st.radio("Q1. 공고 자격 충족?", ("적합", "부적합"))
@@ -30,8 +31,8 @@ with tab1:
 
 # [Tab 2] 재무건전성
 with tab2:
-    st.subheader("재무제표 정밀 입력 (단위: 원)")
-    with st.expander("📝 재무 데이터 입력창 열기", expanded=True):
+    st.subheader("2단계: 재무제표 정밀 입력 (단위: 원)")
+    with st.expander("📝 재무 데이터 입력창 열기 (클릭)", expanded=True):
         c1, c2, c3 = st.columns(3)
         cap_total = c1.number_input("자본총계", value=100000000, step=1000000, format="%d")
         cap_stock = c1.number_input("자본금", value=50000000, step=1000000, format="%d")
@@ -44,6 +45,7 @@ with tab2:
         int_exp = c5.number_input("이자비용", value=5000000, format="%d")
         
         st.markdown("---")
+        st.caption("※ 엑셀 [평가지표] 기준 연속성 체크")
         chk1, chk2 = st.columns(2)
         prev_debt_500 = chk1.checkbox("작년(23년) 부채비율 500% 이상")
         prev_curr_50 = chk1.checkbox("작년(23년) 유동비율 50% 이하")
@@ -52,7 +54,7 @@ with tab2:
 
 # [Tab 3] 3책 5공
 with tab3:
-    st.subheader("인력 참여 현황 (3책 5공)")
+    st.subheader("3단계: 인력 참여 현황 (3책 5공)")
     col_p1, col_p2 = st.columns(2)
     with col_p1:
         st.markdown("**[현재 수행 중]**")
@@ -63,21 +65,17 @@ with tab3:
         cnt_pi_applying = st.number_input("연구책임자(PI)로 신청", value=1, min_value=0)
         cnt_res_applying = st.number_input("참여연구원으로 신청", value=0, min_value=0)
 
-# [Tab 4] 가점 및 감점 (수정됨)
+# [Tab 4] 가점 및 감점
 with tab4:
-    st.subheader("🏅 가점 및 감점 시뮬레이션")
+    st.subheader("4단계: 가점 및 감점 시뮬레이션")
     col_bonus, col_penalty = st.columns(2)
     
     with col_bonus:
         st.markdown("### ➕ 가점 항목 (최대 5점)")
-        
-        # 입지 및 유형 (3점) - 하나만 체크해도 3점
         st.markdown("**1. 입지 및 유형 (3점)**")
-        st.caption("※ 아래 중 하나라도 해당하면 3점 부여")
         is_rnd_comp = st.checkbox("연구소기업")
         is_high_tech = st.checkbox("첨단기술기업")
         
-        # 기타 가점 (1점)
         st.markdown("**2. 기타 우수 성과 (각 1점)**")
         is_innovative = st.checkbox("우수 혁신성과 기업")
         is_top100 = st.checkbox("국가 우수성과 100선")
@@ -90,8 +88,17 @@ with tab4:
 
 st.markdown("---")
 
-# 결과 리포트 생성
+# -----------------------------------------------------------
+# [안전장치] 최종 확인 체크박스 (이걸 체크해야 버튼이 활성화됨)
+# -----------------------------------------------------------
+st.subheader("✅ 최종 제출 전 확인")
+check_done = st.checkbox("위 4가지 탭(자격, 재무, 인력, 가점)의 내용을 모두 빠짐없이 확인하고 입력하였습니까?")
+
 if st.button("🚀 종합 진단 및 점수 예측 확인", use_container_width=True):
+    if not check_done:
+        st.error("🚫 [경고] 위 '확인' 체크박스에 체크해주셔야 결과를 볼 수 있습니다. 모든 탭을 입력했는지 다시 확인해주세요.")
+        st.stop()  # 여기서 코드 실행을 멈춤
+
     # 로직 실행
     report = check_comprehensive_score(
         is_suitability, is_duplicated, is_restricted, is_tax_default,
@@ -105,10 +112,13 @@ if st.button("🚀 종합 진단 및 점수 예측 확인", use_container_width=
     final_status = report["summary"]
     if final_status == "적격":
         st.success(f"### 🎉 최종 판정: [적격]")
+        st.markdown("지원 자격을 충족하며, 결격 사유가 발견되지 않았습니다.")
     elif final_status == "사후관리":
         st.warning(f"### ⚠️ 최종 판정: [사후관리 대상]")
+        st.markdown("지원은 가능하나, 재무 상태에 따른 사후관리가 필요합니다.")
     else:
         st.error(f"### 🚫 최종 판정: [부적격]")
+        st.markdown("사전지원제외 대상에 해당하여 지원이 불가능할 수 있습니다.")
 
     st.divider()
 
