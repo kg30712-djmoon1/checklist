@@ -8,12 +8,12 @@ st.markdown("""
     .score-card { background-color: #e3f2fd; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #90caf9; }
     .fail-card { background-color: #ffebee; padding: 10px; border-radius: 5px; color: #c62828; margin-bottom: 5px; }
     .warn-card { background-color: #fff8e1; padding: 10px; border-radius: 5px; color: #f57f17; margin-bottom: 5px; }
-    .check-warning { color: red; font-weight: bold; }
+    .error-msg { color: red; font-weight: bold; background-color: #ffe6e6; padding: 10px; border-radius: 5px; border: 1px solid red; }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🏆 AI 글로벌 빅테크 육성사업 합격 예측 시뮬레이터")
-st.info("💡 상단 4개의 탭을 순서대로 모두 입력해야 최종 결과를 확인할 수 있습니다.")
+st.info("💡 모든 항목을 '직접' 입력하고 확인해야 결과가 생성됩니다. (기본값 0원)")
 
 # 탭 구성
 tab1, tab2, tab3, tab4 = st.tabs(["① 기본자격", "② 재무건전성", "③ 3책5공(인력)", "④ 가점 및 감점"])
@@ -32,17 +32,21 @@ with tab1:
 # [Tab 2] 재무건전성
 with tab2:
     st.subheader("2단계: 재무제표 정밀 입력 (단위: 원)")
-    with st.expander("📝 재무 데이터 입력창 열기 (클릭)", expanded=True):
+    st.markdown("⚠️ **초기값이 0원입니다. 재무제표를 보고 정확한 수치를 입력해주세요.**")
+    
+    with st.expander("📝 재무 데이터 입력창 (필수 입력)", expanded=True):
         c1, c2, c3 = st.columns(3)
-        cap_total = c1.number_input("자본총계", value=100000000, step=1000000, format="%d")
-        cap_stock = c1.number_input("자본금", value=50000000, step=1000000, format="%d")
-        liab_total = c2.number_input("부채총계", value=150000000, step=1000000, format="%d")
-        curr_asset = c3.number_input("유동자산", value=200000000, step=1000000, format="%d")
-        curr_liab = c3.number_input("유동부채", value=100000000, step=1000000, format="%d")
+        # 초기값을 0으로 설정하여 미입력 감지
+        cap_total = c1.number_input("자본총계", value=0, step=1000000, format="%d", help="필수 입력 항목")
+        cap_stock = c1.number_input("자본금", value=0, step=1000000, format="%d", help="필수 입력 항목")
+        
+        liab_total = c2.number_input("부채총계", value=0, step=1000000, format="%d", help="없으면 0 입력")
+        curr_asset = c3.number_input("유동자산", value=0, step=1000000, format="%d", help="필수 입력 항목")
+        curr_liab = c3.number_input("유동부채", value=0, step=1000000, format="%d", help="없으면 0 입력")
         
         c4, c5 = st.columns(2)
-        op_income = c4.number_input("영업이익", value=10000000, format="%d")
-        int_exp = c5.number_input("이자비용", value=5000000, format="%d")
+        op_income = c4.number_input("영업이익", value=0, step=1000000, format="%d", help="손실인 경우 마이너스(-) 입력")
+        int_exp = c5.number_input("이자비용", value=0, step=100000, format="%d")
         
         st.markdown("---")
         st.caption("※ 엑셀 [평가지표] 기준 연속성 체크")
@@ -58,11 +62,11 @@ with tab3:
     col_p1, col_p2 = st.columns(2)
     with col_p1:
         st.markdown("**[현재 수행 중]**")
-        cnt_pi_current = st.number_input("연구책임자(PI)로 수행", value=1, min_value=0)
+        cnt_pi_current = st.number_input("연구책임자(PI)로 수행", value=0, min_value=0)
         cnt_res_current = st.number_input("참여연구원으로 수행", value=0, min_value=0)
     with col_p2:
         st.markdown("**[현재 신청 중]**")
-        cnt_pi_applying = st.number_input("연구책임자(PI)로 신청", value=1, min_value=0)
+        cnt_pi_applying = st.number_input("연구책임자(PI)로 신청", value=1, min_value=0) # 보통 1개는 신청하므로 1
         cnt_res_applying = st.number_input("참여연구원으로 신청", value=0, min_value=0)
 
 # [Tab 4] 가점 및 감점
@@ -89,17 +93,29 @@ with tab4:
 st.markdown("---")
 
 # -----------------------------------------------------------
-# [안전장치] 최종 확인 체크박스 (이걸 체크해야 버튼이 활성화됨)
+# [안전장치] 최종 확인 체크박스 (필수)
 # -----------------------------------------------------------
 st.subheader("✅ 최종 제출 전 확인")
-check_done = st.checkbox("위 4가지 탭(자격, 재무, 인력, 가점)의 내용을 모두 빠짐없이 확인하고 입력하였습니까?")
+check_done = st.checkbox("위 4가지 탭의 내용을 모두 빠짐없이 확인하고 입력하였음을 서약합니다.")
 
 if st.button("🚀 종합 진단 및 점수 예측 확인", use_container_width=True):
+    
+    # [1단계 방어] 최종 체크박스 확인
     if not check_done:
-        st.error("🚫 [경고] 위 '확인' 체크박스에 체크해주셔야 결과를 볼 수 있습니다. 모든 탭을 입력했는지 다시 확인해주세요.")
-        st.stop()  # 여기서 코드 실행을 멈춤
+        st.markdown('<div class="error-msg">🚫 [경고] 최종 확인 서약에 체크하지 않았습니다. 위 체크박스를 눌러주세요.</div>', unsafe_allow_html=True)
+        st.stop()
 
-    # 로직 실행
+    # [2단계 방어] 필수 재무 데이터 미입력(0원) 감지
+    # 자본금이나 자본총계가 0원일 수는 없으므로 이를 기준으로 판단
+    if cap_total == 0 or cap_stock == 0:
+        st.markdown('<div class="error-msg">🚫 [경고] 재무 데이터가 입력되지 않았습니다. <br> [② 재무건전성] 탭에서 자본총계와 자본금을 입력해주세요.</div>', unsafe_allow_html=True)
+        st.stop()
+        
+    if curr_asset == 0:
+         st.markdown('<div class="error-msg">🚫 [경고] 유동자산이 입력되지 않았습니다. <br> [② 재무건전성] 탭에서 값을 입력해주세요.</div>', unsafe_allow_html=True)
+         st.stop()
+
+    # 로직 실행 (모든 관문 통과 시)
     report = check_comprehensive_score(
         is_suitability, is_duplicated, is_restricted, is_tax_default,
         cap_total, cap_stock, liab_total, curr_asset, curr_liab, 
